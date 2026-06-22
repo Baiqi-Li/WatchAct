@@ -87,3 +87,7 @@ vlm_planning_github/
   `vlm_models/__init__.py`.
 - Stages 1–2 call the model and incur API cost; stages 3–4 are pure-Python and
   free. Re-running reuses completed work unless `FORCE=1` is set.
+
+## Contact
+
+Corresponding author: Baiqi Li (baiqili@cs.unc.edu)
