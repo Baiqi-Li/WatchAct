@@ -4,8 +4,6 @@
 
 WatchAct is a behavior-grounded benchmark for robotic manipulation, where the robot reasons over observed human behavior and a language instruction to perform the corresponding task.
 
-![WatchAct teaser](./assets/teaser_figure.png)
-
 ## 1. Download the data
 
 ```bash
