@@ -1,0 +1,41 @@
+{
+"human2camera_reference": {
+    "fixture_front_region": "fixture_back_region",    
+    "fixture_back_region": "fixture_front_region",   
+    "main_back_right_region": "main_front_left_region",    
+    "main_back_center_region": "main_front_center_region",   
+    "main_back_left_region": "main_front_right_region",   
+    "main_middle_right_region": "main_middle_left_region",   
+    "main_middle_center_region": "main_middle_center_region",   
+    "main_middle_left_region": "main_middle_right_region",  
+    "main_front_left_region": "main_back_right_region",   
+    "main_front_center_region": "main_back_center_region",
+    "main_front_right_region": "main_back_left_region"
+},
+"camera2human_reference": {
+    "fixture_front_region": "fixture_back_region",    
+    "fixture_back_region": "fixture_front_region", 
+    "main_front_left_region": "main_back_right_region",
+    "main_front_center_region": "main_back_center_region",
+    "main_front_right_region": "main_back_left_region",
+    "main_middle_left_region": "main_middle_right_region",
+    "main_middle_center_region": "main_middle_center_region",
+    "main_middle_right_region": "main_middle_left_region",
+    "main_back_left_region": "main_front_right_region",
+    "main_back_center_region": "main_front_center_region",
+    "main_back_right_region": "main_front_left_region"
+},
+"camera2leftCamera_reference": {
+    "fixture_front_region": "fixture_back_left_region",    
+    "fixture_back_region": "fixture_back_right_region", 
+    "main_front_left_region": "main_back_left_region",
+    "main_front_center_region": "main_middle_left_region",
+    "main_front_right_region": "main_front_left_region",
+    "main_middle_left_region": "main_back_center_region",
+    "main_middle_center_region": "main_middle_center_region",
+    "main_middle_right_region": "main_front_center_region",
+    "main_back_left_region": "main_back_right_region",
+    "main_back_center_region": "main_middle_right_region",
+    "main_back_right_region": "main_front_right_region"
+}
+}
