@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import datetime, timezone
+import re
 from pathlib import Path
 from typing import Any
 
@@ -23,6 +23,28 @@ METRIC_SEQUENCE_SR = "Sequence SR"
 SEQUENCE_SR_DATASETS = {
     "Imitation",
     "Reversal",
+}
+
+# High-level category -> subcategories. Embedded so this benchmark is
+# self-contained. Each subcategory equals a dataset file name with spaces in
+# place of underscores (e.g. "Temporal Sort" <-> Temporal_Sort).
+TASK_TAXONOMY: dict[str, list[str]] = {
+    "Event Grounding": ["Fine-Grained Action", "Count", "Ordinal", "State Change", "Moment"],
+    "Procedural Reasoning": ["Imitation", "Reversal", "Temporal Sort"],
+    "Implicit Intent Inference": ["Nonverbal Cue", "Reference Disambiguation"],
+    "Episodic Reasoning": [
+        "Restore Previous State",
+        "Task Continuation",
+        "Error Correction",
+        "Conditional Execution",
+    ],
+}
+
+# Valid dataset file names (subcategory with spaces -> underscores). Used to
+# recover the clean task name from filenames like
+# simulation_results_<model_id>_<task>[_<suffix>].json.
+KNOWN_DATASETS: set[str] = {
+    sub.replace(" ", "_") for subs in TASK_TAXONOMY.values() for sub in subs
 }
 
 
@@ -56,6 +78,12 @@ def parse_args() -> argparse.Namespace:
             "the per-result `Sequence SR` field for the 4 datasets where it "
             "is computed. Default: %(default)s."
         ),
+    )
+    parser.add_argument(
+        "--summary-path",
+        type=Path,
+        default=PROJECT_ROOT / "outputs/summary.json",
+        help="Path to save the count-weighted overall/high-level/subcategory summary (default: %(default)s).",
     )
     return parser.parse_args()
 
@@ -164,6 +192,173 @@ def _pretty_key(key: str) -> str:
     return key
 
 
+# ---------------------------------------------------------------------------
+# Relational goal evaluation (e.g. Temporal_Sort: Horizontal / Right)
+#
+# final_goal predicates are expressed in the canonical camera-front frame,
+# while final_state region ids are in the row's target frame (already remapped
+# by the translator). We therefore resolve how Horizontal/Right map onto region
+# ids based on (spatial_reference, camera_perspective).
+# ---------------------------------------------------------------------------
+
+_MAIN_REGION_RE = re.compile(r"main_(back|middle|front)_(left|center|right)_region")
+_PREDICATE_RE = re.compile(r"^\s*(\w+)\s*\((.*)\)\s*$")
+
+# Each rule: which (row|col) component must be equal for Horizontal, and the
+# rank table for Right such that Right(A, B) holds iff rank(A) > rank(B).
+FRAME_RULES: dict[str, dict[str, Any]] = {
+    # camera + front (canonical): same row = horizontal; right by column left<center<right.
+    "camera_front": {
+        "horiz": "row",
+        "right_component": "col",
+        "right_order": {"left": 0, "center": 1, "right": 2},
+    },
+    # camera + left (90 deg rotation): same column = horizontal; right by row front>middle>back.
+    "camera_left": {
+        "horiz": "col",
+        "right_component": "row",
+        "right_order": {"back": 0, "middle": 1, "front": 2},
+    },
+    # human (perspective-agnostic, left-right mirrored): same row = horizontal;
+    # right reversed left>center>right.
+    "human": {
+        "horiz": "row",
+        "right_component": "col",
+        "right_order": {"right": 0, "center": 1, "left": 2},
+    },
+}
+
+
+def _parse_main_region(region: Any) -> tuple[str, str] | None:
+    """Return (row, col) for a main_<row>_<col>_region id, else None."""
+    if not isinstance(region, str):
+        return None
+    m = _MAIN_REGION_RE.match(region.strip())
+    if not m:
+        return None
+    return m.group(1), m.group(2)
+
+
+def _resolve_frame_rule(spatial_reference: Any, camera_perspective: Any) -> dict[str, Any]:
+    spatial = str(spatial_reference or "").strip().lower()
+    camera = str(camera_perspective or "").strip().lower()
+    if spatial == "human":
+        # human frame ignores camera_perspective (front / left / left_back).
+        return FRAME_RULES["human"]
+    if spatial == "camera" and camera == "left":
+        return FRAME_RULES["camera_left"]
+    if spatial == "camera":
+        return FRAME_RULES["camera_front"]
+    raise ValueError(
+        "Unsupported (spatial_reference, camera_perspective): "
+        f"({spatial_reference!r}, {camera_perspective!r})"
+    )
+
+
+def _is_relational_goal(goal_state: Any) -> bool:
+    """Relational goals are lists of predicate strings like 'Horizontal(a, b)'."""
+    return isinstance(goal_state, list) and any(isinstance(g, str) for g in goal_state)
+
+
+def _parse_predicate(pred: Any) -> tuple[str | None, list[str]]:
+    if not isinstance(pred, str):
+        return None, []
+    m = _PREDICATE_RE.match(pred)
+    if not m:
+        return None, []
+    args = [a.strip() for a in m.group(2).split(",") if a.strip()]
+    return m.group(1), args
+
+
+def _horiz_value(region: Any, rule: dict[str, Any]) -> str | None:
+    parsed = _parse_main_region(region)
+    if parsed is None:
+        return None
+    row, col = parsed
+    return row if rule["horiz"] == "row" else col
+
+
+def _right_rank(region: Any, rule: dict[str, Any]) -> int | None:
+    parsed = _parse_main_region(region)
+    if parsed is None:
+        return None
+    row, col = parsed
+    component = row if rule["right_component"] == "row" else col
+    return rule["right_order"].get(component)
+
+
+def evaluate_relational_goal(
+    final_state: list[Any],
+    final_goal: list[Any],
+    spatial_reference: Any,
+    camera_perspective: Any,
+) -> dict[str, Any]:
+    """Score a relational final_goal (Horizontal / Right) against final_state.
+
+    final_goal predicates are in the canonical camera-front frame; final_state
+    region ids are in the row's target frame, so Horizontal/Right are resolved
+    onto region ids via (spatial_reference, camera_perspective). A predicate
+    whose objects are missing or sit outside the main grid counts as not met.
+    """
+    if not isinstance(final_state, list):
+        raise TypeError("final_state must be a list")
+    if not isinstance(final_goal, list):
+        raise TypeError("final_goal must be a list")
+
+    rule = _resolve_frame_rule(spatial_reference, camera_perspective)
+    final_dict = parse_state_entries(final_state)
+
+    def region_of(obj: Any) -> str | None:
+        entry = final_dict.get(_norm_token(obj))
+        if entry and entry.get("kind") == "object":
+            return entry.get("region")
+        return None
+
+    total = 0
+    satisfied = 0
+    failed_objects: list[str] = []
+
+    for pred in final_goal:
+        name, args = _parse_predicate(pred)
+        if name is None:
+            continue
+        total += 1
+        regions = [region_of(a) for a in args]
+        if name == "Horizontal" and len(args) >= 2:
+            values = [_horiz_value(r, rule) for r in regions]
+            ok = all(v is not None for v in values) and len(set(values)) == 1
+        elif name == "Right" and len(args) == 2:
+            ra = _right_rank(regions[0], rule)
+            rb = _right_rank(regions[1], rule)
+            ok = ra is not None and rb is not None and ra > rb
+        else:
+            ok = False
+        if ok:
+            satisfied += 1
+        else:
+            for a in args:
+                if a not in failed_objects:
+                    failed_objects.append(a)
+
+    if total:
+        progress = satisfied / total
+        all_success = satisfied == total
+    else:
+        progress = 1.0
+        all_success = True
+    success_rate = 1.0 if all_success else 0.0
+
+    return {
+        "all_success": all_success,
+        METRIC_SUCCESS_RATE: success_rate,
+        METRIC_COMPLETION_RATIO: progress,
+        "final_state_goal_match_ratio": progress,
+        "interest_mismatch_objects": failed_objects,
+        "non_interest_mismatch_ratio": 0.0,
+        "non_interest_mismatch_objects": [],
+    }
+
+
 def get_camera_perspective(row: dict[str, Any]) -> Any:
     value = row.get("camera_perspective")
     if value is None:
@@ -192,6 +387,14 @@ def evaluate_final_state(final_state: list[Any], example: dict[str, Any]) -> dic
         raise TypeError("example.goal_state must be a list")
     if not isinstance(final_state, list):
         raise TypeError("final_state must be a list")
+
+    if _is_relational_goal(goal_state):
+        return evaluate_relational_goal(
+            final_state=final_state,
+            final_goal=goal_state,
+            spatial_reference=example.get("spatial_reference"),
+            camera_perspective=example.get("camera_perspective"),
+        )
 
     init_dict = parse_state_entries(initial_state)
     goal_dict = parse_state_entries(goal_state)
@@ -301,17 +504,23 @@ def build_sequence_sr_index(
 
 
 def infer_dataset_name(input_file: Path) -> str:
+    # Canonical pipeline layout: action_execution/<task>/simulation_results_*.json
+    if input_file.parent.name in KNOWN_DATASETS:
+        return input_file.parent.name
     stem = input_file.stem
-    # Try known prefixes
+    # Recover a known task embedded in the filename (handles
+    # simulation_results_<model_id>_<task>[_<suffix>].json). Longest match first
+    # so e.g. "State_Change" wins over any shorter accidental match.
+    for ds in sorted(KNOWN_DATASETS, key=len, reverse=True):
+        if re.search(rf"(?:^|_){re.escape(ds)}(?:_|$)", stem):
+            return ds
+    # Legacy fallbacks (numbered datasets like "0_following_sequences").
     for prefix in ("gpt_simulation_results_", "simulation_results_"):
         if stem.startswith(prefix):
             return stem[len(prefix):]
-    # Try generic pattern: <model>_simulation_results_<dataset>
-    import re
     m = re.match(r"^\w+_simulation_results_(.+)$", stem)
     if m:
         return m.group(1)
-    # Fallback to parent directory name if it looks like a dataset
     parent = input_file.parent.name
     if re.match(r"^[0-9]+_.+$", parent):
         return parent
@@ -390,6 +599,8 @@ def score_one_file(
                 example={
                     "initial_state": initial_state,
                     "goal_state": goal_state,
+                    "spatial_reference": spatial_reference,
+                    "camera_perspective": camera_perspective,
                 },
             )
 
@@ -438,26 +649,16 @@ def score_one_file(
                     "original_id": original_id,
                     "camera_perspective": camera_perspective,
                     "spatial_reference": spatial_reference,
-                    "language_instruction": language_instruction,
-                    "video_path": video_path,
-                    "simulation_status": row.get("status"),
-                    "metric": metric,
-                    "status": "ok",
-                    "error": None,
+                    METRIC_SUCCESS_RATE: metric[METRIC_SUCCESS_RATE],
+                    METRIC_COMPLETION_RATIO: metric[METRIC_COMPLETION_RATIO],
                 }
             )
-        except Exception as exc:
+        except Exception:
             scored_rows.append(
                 {
                     "id": row_id,
                     "original_id": original_id,
-                    "camera_perspective": camera_perspective,
-                    "spatial_reference": spatial_reference,
-                    "language_instruction": language_instruction,
-                    "video_path": video_path,
-                    "simulation_status": row.get("status"),
                     "status": "error",
-                    "error": str(exc),
                 }
             )
 
@@ -466,70 +667,150 @@ def score_one_file(
         combo_stats.items(), key=lambda item: (str(item[0][0]), str(item[0][1]))
     ):
         combo_count = int(combo["evaluated_count"])
-        combo_entry = {
-            "camera_perspective": camera,
-            "spatial_reference": spatial,
-            "evaluated_count": combo_count,
-            METRIC_SUCCESS_RATE: (
-                combo["success_rate_sum"] / combo_count if combo_count else 0.0
-            ),
-            METRIC_COMPLETION_RATIO: (
-                combo["completion_ratio_sum"] / combo_count if combo_count else 0.0
-            ),
-            "avg_final_state_goal_match_ratio": (
-                combo["final_state_goal_match_ratio_sum"] / combo_count
-                if combo_count
-                else 0.0
-            ),
-            "avg_non_interest_mismatch_ratio": (
-                combo["non_interest_mismatch_ratio_sum"] / combo_count
-                if combo_count
-                else 0.0
-            ),
-        }
-        seq_count = int(combo["sequence_sr_count"])
-        if seq_count > 0:
-            combo_entry[METRIC_SEQUENCE_SR] = combo["sequence_sr_sum"] / seq_count
-            combo_entry["sequence_sr_evaluated_count"] = seq_count
-        combo_metrics.append(combo_entry)
-
-    summary = {
-        "evaluated_count": eval_count,
-        METRIC_SUCCESS_RATE: (success_rate_sum / eval_count) if eval_count else 0.0,
-        METRIC_COMPLETION_RATIO: (completion_ratio_sum / eval_count) if eval_count else 0.0,
-        "avg_final_state_goal_match_ratio": (
-            final_state_goal_match_ratio_sum / eval_count
-        )
-        if eval_count
-        else 0.0,
-        "avg_non_interest_mismatch_ratio": (
-            non_interest_mismatch_ratio_sum / eval_count
-        )
-        if eval_count
-        else 0.0,
-        "by_camera_perspective_spatial_reference": combo_metrics,
-    }
-    if sequence_sr_count > 0:
-        summary[METRIC_SEQUENCE_SR] = sequence_sr_sum / sequence_sr_count
-        summary["sequence_sr_evaluated_count"] = sequence_sr_count
-        summary["sequence_sr_source"] = (
-            str(sequence_sr_source) if sequence_sr_source is not None else None
+        combo_metrics.append(
+            {
+                "camera_perspective": camera,
+                "spatial_reference": spatial,
+                "count": combo_count,
+                METRIC_SUCCESS_RATE: (
+                    combo["success_rate_sum"] / combo_count if combo_count else 0.0
+                ),
+                METRIC_COMPLETION_RATIO: (
+                    combo["completion_ratio_sum"] / combo_count if combo_count else 0.0
+                ),
+            }
         )
 
     dataset_name = infer_dataset_name(input_file)
     output_payload = {
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "source_action_execution_path": str(input_file),
-        "total": len(scored_rows),
-        "ok": sum(1 for r in scored_rows if r.get("status") == "ok"),
-        "error": sum(1 for r in scored_rows if r.get("status") == "error"),
-        "summary": summary,
+        "dataset": dataset_name,
+        "evaluated_count": eval_count,
+        "error_count": sum(1 for r in scored_rows if r.get("status") == "error"),
+        METRIC_SUCCESS_RATE: (success_rate_sum / eval_count) if eval_count else 0.0,
+        METRIC_COMPLETION_RATIO: (completion_ratio_sum / eval_count) if eval_count else 0.0,
+        "by_combo": combo_metrics,
         "results": scored_rows,
     }
 
     output_file = output_dir / f"scores_{dataset_name}.json"
     save_json(output_file, output_payload)
-    return output_file
+    return output_file, output_payload
+
+
+def _subcategory_to_dataset(subcategory: str) -> str:
+    """Taxonomy subcategory name -> dataset file name (underscores for spaces)."""
+    return subcategory.replace(" ", "_")
+
+
+def build_summary(
+    payloads: list[dict[str, Any]],
+    task_taxonomy: dict[str, list[str]],
+) -> dict[str, Any]:
+    """Count-weighted summary: overall, then high-level, then subcategory.
+
+    Weighted rate = sum(rate_i * count_i) / sum(count_i), i.e. total correct
+    over total evaluated. Every taxonomy category/subcategory is always listed;
+    those without results this run show null rates (and are flagged under
+    `missing_subcategories`) so partial runs are explicit rather than fatal.
+    """
+    def acc() -> dict[str, float]:
+        return {"evaluated_count": 0, "error_count": 0, "success_sum": 0.0, "progress_sum": 0.0}
+
+    def add(target: dict[str, float], cnt: int, err: int, sr: float, pr: float) -> None:
+        target["evaluated_count"] += cnt
+        target["error_count"] += err
+        target["success_sum"] += sr * cnt
+        target["progress_sum"] += pr * cnt
+
+    def rates(a: dict[str, float]) -> dict[str, Any]:
+        cnt = a["evaluated_count"]
+        return {
+            "evaluated_count": cnt,
+            "error_count": a["error_count"],
+            METRIC_SUCCESS_RATE: (a["success_sum"] / cnt) if cnt else None,
+            METRIC_COMPLETION_RATIO: (a["progress_sum"] / cnt) if cnt else None,
+        }
+
+    # Index scored payloads by their subcategory (dataset name with underscores).
+    by_sub: dict[str, dict[str, Any]] = {}
+    for p in payloads:
+        ds = p.get("dataset")
+        if ds is not None:
+            by_sub[str(ds).replace("_", " ")] = p
+
+    overall = acc()
+    high_level_entries: list[dict[str, Any]] = []
+    subcategory_entries: list[dict[str, Any]] = []
+    missing_subcategories: list[str] = []
+    known_subs: set[str] = set()
+
+    for high, subs in task_taxonomy.items():
+        high_acc = acc()
+        for sub in subs:
+            known_subs.add(sub)
+            p = by_sub.get(sub)
+            if p is None:
+                # Not scored in this run: list it explicitly with null rates.
+                missing_subcategories.append(_subcategory_to_dataset(sub))
+                subcategory_entries.append(
+                    {
+                        "dataset": _subcategory_to_dataset(sub),
+                        "evaluated_count": 0,
+                        "error_count": 0,
+                        METRIC_SUCCESS_RATE: None,
+                        METRIC_COMPLETION_RATIO: None,
+                    }
+                )
+                continue
+            cnt = int(p.get("evaluated_count", 0) or 0)
+            err = int(p.get("error_count", 0) or 0)
+            sr = float(p.get(METRIC_SUCCESS_RATE, 0.0) or 0.0)
+            pr = float(p.get(METRIC_COMPLETION_RATIO, 0.0) or 0.0)
+            subcategory_entries.append(
+                {
+                    "dataset": p.get("dataset"),
+                    "evaluated_count": cnt,
+                    "error_count": err,
+                    METRIC_SUCCESS_RATE: sr,
+                    METRIC_COMPLETION_RATIO: pr,
+                }
+            )
+            add(high_acc, cnt, err, sr, pr)
+            add(overall, cnt, err, sr, pr)
+        high_level_entries.append({"category": high, **rates(high_acc)})
+
+    # Scored datasets that are not part of the taxonomy: keep them visible too.
+    for sub, p in by_sub.items():
+        if sub in known_subs:
+            continue
+        cnt = int(p.get("evaluated_count", 0) or 0)
+        err = int(p.get("error_count", 0) or 0)
+        sr = float(p.get(METRIC_SUCCESS_RATE, 0.0) or 0.0)
+        pr = float(p.get(METRIC_COMPLETION_RATIO, 0.0) or 0.0)
+        subcategory_entries.append(
+            {
+                "dataset": p.get("dataset"),
+                "evaluated_count": cnt,
+                "error_count": err,
+                METRIC_SUCCESS_RATE: sr,
+                METRIC_COMPLETION_RATIO: pr,
+            }
+        )
+        add(overall, cnt, err, sr, pr)
+        print(
+            f"[summary] dataset '{p.get('dataset')}' is not in the taxonomy; "
+            f"counted in overall only.",
+            flush=True,
+        )
+
+    summary = {
+        "overall": rates(overall),
+        "high_level": high_level_entries,
+        "subcategory": subcategory_entries,
+    }
+    if missing_subcategories:
+        summary["missing_subcategories"] = missing_subcategories
+    return summary
 
 
 def list_input_files(input_path: Path) -> list[Path]:
@@ -554,13 +835,19 @@ def main() -> None:
         raise FileNotFoundError(f"No JSON files found under: {args.input_path}")
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
+    payloads: list[dict[str, Any]] = []
     for input_file in input_files:
-        output_file = score_one_file(
+        output_file, payload = score_one_file(
             input_file=input_file,
             output_dir=args.output_dir,
             translation_root=args.translation_dir,
         )
+        payloads.append(payload)
         print(f"Saved: {output_file}", flush=True)
+
+    summary = build_summary(payloads, TASK_TAXONOMY)
+    save_json(args.summary_path, summary)
+    print(f"Saved summary: {args.summary_path}", flush=True)
 
 
 if __name__ == "__main__":

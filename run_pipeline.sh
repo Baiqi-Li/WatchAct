@@ -156,6 +156,19 @@ for task in "${TASKS[@]}"; do
   done
 done
 
+# Aggregate across every scored task into one count-weighted summary
+# (overall / high-level category / per-task subcategory). This directory pass
+# scans all simulation results under action_execution, so the summary always
+# reflects every task present, not just the last one scored.
+echo; echo "===== summary ====="
+SUMMARY_PATH="$OUTPUT_ROOT/summary.json"
+python "$SCRIPTS/run_action_plan_scoring.py" \
+  --input-path "$OUTPUT_ROOT/action_execution" \
+  --output-dir "$SCORE_DIR" \
+  --summary-path "$SUMMARY_PATH"
+
 echo; echo "############################################################"
-echo "# Pipeline complete. Scores -> $SCORE_DIR"
+echo "# Pipeline complete."
+echo "#   per-task scores -> $SCORE_DIR"
+echo "#   summary         -> $SUMMARY_PATH"
 echo "############################################################"

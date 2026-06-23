@@ -61,10 +61,23 @@ outputs/
 ├── action_plan/<task>/<model_id>_<task>.json          # stage 1
 ├── translation/<task>/...                              # stage 2
 ├── action_execution/<task>/simulation_results_*.json  # stage 3
-└── scores/                                             # stage 4 (final metrics)
+├── scores/scores_<task>.json                           # stage 4: per-task scores
+└── summary.json                                        # stage 4: final aggregated metrics
 ```
 
-Final per-task and aggregate metrics live in `outputs/scores/`.
+**Where the final scores are:**
+
+- **`outputs/summary.json`** — the headline result file. Count-weighted
+  `Plan Success Rate` and `Progress Rate`, ordered as `overall` → per
+  high-level `category` → per-task `subcategory`. Tasks not scored in the
+  current run appear with `null` rates and are listed under
+  `missing_subcategories`, so partial runs are still valid.
+- **`outputs/scores/scores_<task>.json`** — per-task scores: the same two
+  metrics overall and broken down `by_combo` (camera_perspective ×
+  spatial_reference), plus per-row results.
+
+Override the summary location with `--summary-path` on
+`scripts/run_action_plan_scoring.py` (default `outputs/summary.json`).
 
 ## Layout
 
