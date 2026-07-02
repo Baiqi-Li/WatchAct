@@ -1,0 +1,11 @@
+# Python deps for the WatchAct evaluation pipeline (run_pipeline.sh + scripts/).
+# Stages 1-2 call a VLM (OpenAI structured output); stages 3-4 are pure Python.
+#
+# The LIBERO task-execution feature has its own deps:
+#   see action_execution/requirements.txt
+
+openai            # gpt_schema backend (structured output)
+pydantic          # response schemas
+opencv-python     # video frame sampling (cv2)
+pillow            # image handling (PIL)
+python-dotenv     # loads OPENAI_API_KEY etc. from .env

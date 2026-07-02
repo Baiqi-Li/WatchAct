@@ -2,26 +2,36 @@
 
 🌐 [Project Page](https://baiqi-li.github.io/watchact_page/) &nbsp;|&nbsp; 🤗 [Dataset](https://huggingface.co/datasets/BaiqiL/WatchAct) &nbsp;|&nbsp; 💻 [Code](https://github.com/Baiqi-Li/WatchAct)
 
-WatchAct is a behavior-grounded benchmark for robotic manipulation, where the robot reasons over observed human behavior and a language instruction to perform the corresponding task.
+WatchAct is a behavior-grounded benchmark for robotic manipulation: the robot
+must reason over an observed human video **and** a language instruction to
+perform the intended task.
 
-## 1. Download the data
+The repo has two independent parts:
+
+1. **VLM Planning Evaluation** (`video_planning/`) — score a VLM planner. The
+   VLM watches each video and produces an action plan; the pipeline then aligns
+   the plan, simulates it symbolically, and compares the result against the
+   ground-truth goal, writing one concise result file.
+2. **Execution on LIBERO** (`action_execution/`) — take generated plans and roll them out
+   in the LIBERO simulator on WatchAct's custom BDDL tasks.
+
+## Setup
+
+Download the dataset into `data/`:
 
 ```bash
-huggingface-cli download WatchAct/data --repo-type dataset \
-  --local-dir vlm_planning_github/data
+hf download BaiqiL/WatchAct --repo-type dataset --local-dir data
 ```
 
-This produces:
-
 ```
-vlm_planning_github/data/
-├── data/<task>.jsonl        # one file per task (the evaluation rows)
-├── meta_data/<task>.json    # ground-truth scene / goal definitions
-├── videos/<task>/{front,left,left_back}/*.MP4
-└── bddl_files/<task>/       # LIBERO task files (not needed for scoring)
+data/
+├── data/<task>.jsonl        # evaluation rows (one file per task)
+├── meta_data/<task>.json    # ground-truth scenes / goals
+├── videos/<task>/{front,side,oblique}/*.MP4
+└── bddl_files/<task>/       # LIBERO task files (used by execution only)
 ```
 
-A `<task>` is the jsonl filename stem. The 14 tasks, grouped by capability:
+The 14 tasks (`<task>` = jsonl filename stem), grouped by capability:
 
 | Category | Tasks |
 |---|---|
@@ -30,74 +40,91 @@ A `<task>` is the jsonl filename stem. The 14 tasks, grouped by capability:
 | Implicit Intent Inference | `Nonverbal_Cue`, `Reference_Disambiguation` |
 | Episodic Reasoning | `Restore_Previous_State`, `Task_Continuation`, `Error_Correction`, `Conditional_Execution` |
 
-## 2. Run the pipeline
+Dependencies: `pip install -r video_planning/requirements.txt` for evaluation, and
+see [action_execution/README.md](action_execution/README.md) for execution.
 
-Single task (the argument is the jsonl filename without `.jsonl`):
-
-```bash
-bash vlm_planning_github/run_pipeline.sh Ordinal
-```
-
-All tasks found under `data/`:
+The evaluation pipeline calls a VLM API, so set the matching key (as an
+environment variable or in a `.env` file). For example, with Qwen
+(get a key at [qwen.ai/apiplatform](https://qwen.ai/apiplatform)):
 
 ```bash
-bash vlm_planning_github/run_pipeline.sh
+export DASHSCOPE_API_KEY=sk-...   # Qwen backend (also: pip install dashscope)
+export OPENAI_API_KEY=sk-...      # GPT backend (default)
 ```
 
-Useful overrides (environment variables):
+## 1. Evaluation
+
+Run the four-stage pipeline over one, several, or all tasks:
 
 ```bash
-MODEL_ID=gpt-5.4 bash vlm_planning_github/run_pipeline.sh Ordinal
-FORCE=1          bash vlm_planning_github/run_pipeline.sh   # re-run completed files
-NUM_WORKERS=12   bash vlm_planning_github/run_pipeline.sh
+bash video_planning/run_pipeline.sh                    # all tasks
+bash video_planning/run_pipeline.sh Ordinal Temporal_Sort
+MODEL_ID=gpt-5.4 bash video_planning/run_pipeline.sh   # override the planner model
+MODEL=qwen MODEL_ID=qwen3-vl-235b-a22b-instruct bash video_planning/run_pipeline.sh
 ```
 
-## 3. Outputs
+Stages (each task flows through them in order):
 
-Everything is written under `vlm_planning_github/outputs/`:
+| # | Stage | What it does |
+|---|---|---|
+| 1 | `run_vlm_evaluation.py` | VLM watches the video → action plan |
+| 2 | `run_translator_alignment.py` | align the plan to canonical objects/regions |
+| 3 | `run_action_plan_simulation.py` | symbolically execute the aligned plan |
+| 4 | `run_action_plan_scoring.py` | compare the final state against the goal |
 
+**Result:** `outputs/summary.json` — count-weighted `Plan Success Rate` and
+`Progress Rate` (overall → capability category → per-task). Every per-stage
+artifact lives under `outputs/intermediate/`. Completed work is reused on re-run
+unless `FORCE=1` is set.
+
+Two backends ship: `gpt_schema` (OpenAI structured output, the default) and
+`qwen_api` (optional; needs `pip install dashscope` and `DASHSCOPE_API_KEY`).
+Add a model by dropping a `BaseVLM` subclass in `video_planning/vlm_models/`.
+
+## 2. Execution (LIBERO)
+
+Fill your plan steps into `action_execution/action_steps.json`, then roll them
+out in LIBERO on WatchAct's custom BDDL tasks (with the custom objects and the
+`Right`/`Horizontal` goal predicates registered at runtime).
+
+[LIBERO](https://github.com/Lifelong-Robot-Learning/LIBERO) is a git submodule;
+fetch it and apply the one-line patch that removes an upstream debug breakpoint:
+
+```bash
+git submodule update --init third_party/LIBERO
+git -C third_party/LIBERO apply ../libero_remove_pdb.patch
+cd action_execution
+python build_execution_instructions.py            # action_steps.json -> config
+python run_libero_execution.py --config execution_instructions.yaml \
+    --exp-id sequential --host <policy_host> --port <policy_port>
 ```
-outputs/
-├── action_plan/<task>/<model_id>_<task>.json          # stage 1
-├── translation/<task>/...                              # stage 2
-├── action_execution/<task>/simulation_results_*.json  # stage 3
-├── scores/scores_<task>.json                           # stage 4: per-task scores
-└── summary.json                                        # stage 4: final aggregated metrics
-```
 
-**Where the final scores are:**
-
-- **`outputs/summary.json`** — the headline result file. Count-weighted
-  `Plan Success Rate` and `Progress Rate`, ordered as `overall` → per
-  high-level `category` → per-task `subcategory`. Tasks not scored in the
-  current run appear with `null` rates and are listed under
-  `missing_subcategories`, so partial runs are still valid.
-- **`outputs/scores/scores_<task>.json`** — per-task scores: the same two
-  metrics overall and broken down `by_combo` (camera_perspective ×
-  spatial_reference), plus per-row results.
-
-Override the summary location with `--summary-path` on
-`scripts/run_action_plan_scoring.py` (default `outputs/summary.json`).
+Full details, the policy-server protocol, and custom-object notes are in
+[action_execution/README.md](action_execution/README.md).
 
 ## Layout
 
 ```
-vlm_planning_github/
-├── run_pipeline.sh              # 4-stage orchestrator
-├── scripts/                     # stage entry points + check_complete gating
-├── vlm_models/                  # self-contained gpt_schema backend
-├── config/                      # region / object / reference descriptions
-├── data/                        # downloaded from WatchAct/data
-└── outputs/                     # generated results
+WatchAct/
+├── video_planning/      # evaluation: pipeline, stage scripts, VLM backends, config
+├── action_execution/    # execution: run plans in LIBERO (self-contained)
+├── custom_assets/       # custom object models for execution
+├── third_party/LIBERO/  # simulator, git submodule (execution only)
+├── assets/              # teaser figure
+├── data/                # dataset (downloaded; git-ignored)
+└── outputs/             # summary.json (result) + intermediate/ (git-ignored)
 ```
 
-## Notes
+## Citation
 
-- Only the `gpt_schema` backend (OpenAI structured output) is shipped. To add
-  another model, drop a `BaseVLM` subclass under `vlm_models/` and import it in
-  `vlm_models/__init__.py`.
-- Stages 1–2 call the model and incur API cost; stages 3–4 are pure-Python and
-  free. Re-running reuses completed work unless `FORCE=1` is set.
+```bibtex
+@article{li2026watchact,
+  title={WatchAct: A Benchmark for Behavior-Grounded Robot Manipulation},
+  author={Li, Baiqi and Zhang, Ce and Fang, Yu and Yang, Yue and Li, Shangzhe and Ding, Mingyu and Bertasius, Gedas},
+  journal={arXiv preprint arXiv:2606.26443},
+  year={2026}
+}
+```
 
 ## Contact
 

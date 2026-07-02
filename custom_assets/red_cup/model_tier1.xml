@@ -1,0 +1,53 @@
+<mujoco model="red_cup">
+  <asset>
+    <material name="red_cup_mat" rgba="0.8 0.12 0.12 1" specular="0.3" shininess="0.1"/>
+    <mesh name="red_cup_vis" file="red_cup_libero.obj" scale="1 1 1"/>
+    <mesh name="red_cup_col_0" file="red_cup_col_0.obj" scale="1 1 1"/>
+    <mesh name="red_cup_col_1" file="red_cup_col_1.obj" scale="1 1 1"/>
+    <mesh name="red_cup_col_2" file="red_cup_col_2.obj" scale="1 1 1"/>
+    <mesh name="red_cup_col_3" file="red_cup_col_3.obj" scale="1 1 1"/>
+    <mesh name="red_cup_col_4" file="red_cup_col_4.obj" scale="1 1 1"/>
+    <mesh name="red_cup_col_5" file="red_cup_col_5.obj" scale="1 1 1"/>
+    <mesh name="red_cup_col_6" file="red_cup_col_6.obj" scale="1 1 1"/>
+    <mesh name="red_cup_col_7" file="red_cup_col_7.obj" scale="1 1 1"/>
+    <mesh name="red_cup_col_8" file="red_cup_col_8.obj" scale="1 1 1"/>
+    <mesh name="red_cup_col_9" file="red_cup_col_9.obj" scale="1 1 1"/>
+    <mesh name="red_cup_col_10" file="red_cup_col_10.obj" scale="1 1 1"/>
+    <mesh name="red_cup_col_11" file="red_cup_col_11.obj" scale="1 1 1"/>
+    <mesh name="red_cup_col_12" file="red_cup_col_12.obj" scale="1 1 1"/>
+    <mesh name="red_cup_col_13" file="red_cup_col_13.obj" scale="1 1 1"/>
+    <mesh name="red_cup_col_14" file="red_cup_col_14.obj" scale="1 1 1"/>
+    <mesh name="red_cup_col_15" file="red_cup_col_15.obj" scale="1 1 1"/>
+    <mesh name="red_cup_col_16" file="red_cup_col_16.obj" scale="1 1 1"/>
+    <mesh name="red_cup_col_17" file="red_cup_col_17.obj" scale="1 1 1"/>
+  </asset>
+  <worldbody>
+    <body>
+      <body name="object">
+        <geom type="mesh" mesh="red_cup_vis" material="red_cup_mat" group="1" contype="0" conaffinity="0"/>
+        <geom type="mesh" mesh="red_cup_col_0" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="red_cup_col_1" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="red_cup_col_2" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="red_cup_col_3" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="red_cup_col_4" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="red_cup_col_5" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="red_cup_col_6" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="red_cup_col_7" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="red_cup_col_8" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="red_cup_col_9" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="red_cup_col_10" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="red_cup_col_11" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="red_cup_col_12" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="red_cup_col_13" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="red_cup_col_14" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="red_cup_col_15" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="red_cup_col_16" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="red_cup_col_17" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+      </body>
+      <site rgba="0 0 0 0" size="0.005" pos="0 0 0" name="bottom_site"/>
+      <site rgba="0 0 0 0" size="0.005" pos="0 0 0.10043" name="top_site"/>
+      <site rgba="0 0 0 0" size="0.005" pos="0.06231 0 0" name="horizontal_radius_site"/>
+      <site type="box" rgba="0 0 0 0" pos="0 0 0.05523" size="0.03738 0.02767 0.03013" name="contain_region"/>
+    </body>
+  </worldbody>
+</mujoco>

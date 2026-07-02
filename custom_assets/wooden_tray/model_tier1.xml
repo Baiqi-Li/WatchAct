@@ -1,0 +1,45 @@
+<mujoco model="wooden_tray">
+  <asset>
+    <material name="wooden_tray_mat" rgba="0.55 0.4 0.22 1" specular="0.3" shininess="0.1"/>
+    <mesh name="wooden_tray_vis" file="wooden_tray_libero.obj" scale="1 1 1"/>
+    <mesh name="wooden_tray_col_0" file="wooden_tray_col_0.obj" scale="1 1 1"/>
+    <mesh name="wooden_tray_col_1" file="wooden_tray_col_1.obj" scale="1 1 1"/>
+    <mesh name="wooden_tray_col_2" file="wooden_tray_col_2.obj" scale="1 1 1"/>
+    <mesh name="wooden_tray_col_3" file="wooden_tray_col_3.obj" scale="1 1 1"/>
+    <mesh name="wooden_tray_col_4" file="wooden_tray_col_4.obj" scale="1 1 1"/>
+    <mesh name="wooden_tray_col_5" file="wooden_tray_col_5.obj" scale="1 1 1"/>
+    <mesh name="wooden_tray_col_6" file="wooden_tray_col_6.obj" scale="1 1 1"/>
+    <mesh name="wooden_tray_col_7" file="wooden_tray_col_7.obj" scale="1 1 1"/>
+    <mesh name="wooden_tray_col_8" file="wooden_tray_col_8.obj" scale="1 1 1"/>
+    <mesh name="wooden_tray_col_9" file="wooden_tray_col_9.obj" scale="1 1 1"/>
+    <mesh name="wooden_tray_col_10" file="wooden_tray_col_10.obj" scale="1 1 1"/>
+    <mesh name="wooden_tray_col_11" file="wooden_tray_col_11.obj" scale="1 1 1"/>
+    <mesh name="wooden_tray_col_12" file="wooden_tray_col_12.obj" scale="1 1 1"/>
+    <mesh name="wooden_tray_col_13" file="wooden_tray_col_13.obj" scale="1 1 1"/>
+  </asset>
+  <worldbody>
+    <body>
+      <body name="object">
+        <geom type="mesh" mesh="wooden_tray_vis" material="wooden_tray_mat" group="1" contype="0" conaffinity="0"/>
+        <geom type="mesh" mesh="wooden_tray_col_0" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="wooden_tray_col_1" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="wooden_tray_col_2" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="wooden_tray_col_3" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="wooden_tray_col_4" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="wooden_tray_col_5" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="wooden_tray_col_6" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="wooden_tray_col_7" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="wooden_tray_col_8" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="wooden_tray_col_9" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="wooden_tray_col_10" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="wooden_tray_col_11" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="wooden_tray_col_12" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="wooden_tray_col_13" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+      </body>
+      <site rgba="0 0 0 0" size="0.005" pos="0 0 0" name="bottom_site"/>
+      <site rgba="0 0 0 0" size="0.005" pos="0 0 0.04060" name="top_site"/>
+      <site rgba="0 0 0 0" size="0.005" pos="0.16887 0 0" name="horizontal_radius_site"/>
+      <site type="box" rgba="0 0 0 0" pos="0 0 0.02233" size="0.10132 0.07683 0.01218" name="contain_region"/>
+    </body>
+  </worldbody>
+</mujoco>

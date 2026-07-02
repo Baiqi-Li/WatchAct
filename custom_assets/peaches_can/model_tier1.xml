@@ -1,0 +1,17 @@
+<mujoco model="peaches_can">
+  <asset>
+    <material name="peaches_can_mat" rgba="0.86 0.62 0.32 1" specular="0.3" shininess="0.1"/>
+    <mesh name="peaches_can_vis" file="peaches_can_libero.obj" scale="1 1 1"/>
+  </asset>
+  <worldbody>
+    <body>
+      <body name="object">
+        <geom type="mesh" mesh="peaches_can_vis" material="peaches_can_mat" group="1" contype="0" conaffinity="0"/>
+        <geom name="peaches_can_collision" type="cylinder" size="0.12852 0.12851" pos="0 0 0.12851" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+      </body>
+      <site rgba="0 0 0 0" size="0.005" pos="0 0 0" name="bottom_site"/>
+      <site rgba="0 0 0 0" size="0.005" pos="0 0 0.25702" name="top_site"/>
+      <site rgba="0 0 0 0" size="0.005" pos="0.12852 0 0" name="horizontal_radius_site"/>
+    </body>
+  </worldbody>
+</mujoco>

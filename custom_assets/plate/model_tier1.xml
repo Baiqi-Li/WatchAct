@@ -1,0 +1,49 @@
+<mujoco model="plate">
+  <asset>
+    <material name="plate_mat" rgba="0.9 0.9 0.9 1" specular="0.3" shininess="0.1"/>
+    <mesh name="plate_vis" file="plate_libero.obj" scale="1 1 1"/>
+    <mesh name="plate_col_0" file="plate_col_0.obj" scale="1 1 1"/>
+    <mesh name="plate_col_1" file="plate_col_1.obj" scale="1 1 1"/>
+    <mesh name="plate_col_2" file="plate_col_2.obj" scale="1 1 1"/>
+    <mesh name="plate_col_3" file="plate_col_3.obj" scale="1 1 1"/>
+    <mesh name="plate_col_4" file="plate_col_4.obj" scale="1 1 1"/>
+    <mesh name="plate_col_5" file="plate_col_5.obj" scale="1 1 1"/>
+    <mesh name="plate_col_6" file="plate_col_6.obj" scale="1 1 1"/>
+    <mesh name="plate_col_7" file="plate_col_7.obj" scale="1 1 1"/>
+    <mesh name="plate_col_8" file="plate_col_8.obj" scale="1 1 1"/>
+    <mesh name="plate_col_9" file="plate_col_9.obj" scale="1 1 1"/>
+    <mesh name="plate_col_10" file="plate_col_10.obj" scale="1 1 1"/>
+    <mesh name="plate_col_11" file="plate_col_11.obj" scale="1 1 1"/>
+    <mesh name="plate_col_12" file="plate_col_12.obj" scale="1 1 1"/>
+    <mesh name="plate_col_13" file="plate_col_13.obj" scale="1 1 1"/>
+    <mesh name="plate_col_14" file="plate_col_14.obj" scale="1 1 1"/>
+    <mesh name="plate_col_15" file="plate_col_15.obj" scale="1 1 1"/>
+  </asset>
+  <worldbody>
+    <body>
+      <body name="object">
+        <geom type="mesh" mesh="plate_vis" material="plate_mat" group="1" contype="0" conaffinity="0"/>
+        <geom type="mesh" mesh="plate_col_0" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="plate_col_1" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="plate_col_2" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="plate_col_3" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="plate_col_4" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="plate_col_5" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="plate_col_6" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="plate_col_7" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="plate_col_8" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="plate_col_9" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="plate_col_10" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="plate_col_11" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="plate_col_12" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="plate_col_13" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="plate_col_14" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+        <geom type="mesh" mesh="plate_col_15" group="0" density="100" friction="0.95 0.3 0.1" solimp="0.998 0.998 0.001" solref="0.001 1"/>
+      </body>
+      <site rgba="0 0 0 0" size="0.005" pos="0 0 0" name="bottom_site"/>
+      <site rgba="0 0 0 0" size="0.005" pos="0 0 0.02379" name="top_site"/>
+      <site rgba="0 0 0 0" size="0.005" pos="0.10878 0 0" name="horizontal_radius_site"/>
+      <site type="box" rgba="0 0 0 0" pos="0 0 0.01309" size="0.06510 0.06527 0.00714" name="contain_region"/>
+    </body>
+  </worldbody>
+</mujoco>

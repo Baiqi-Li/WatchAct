@@ -1,0 +1,114 @@
+tasks:
+- task_id: imitation_data_0
+  bddl: KITCHEN_0_FOLLOWING_SEQUENCES_FOLLOWING_SEQUENCES_0
+  bddl_file: Imitation/KITCHEN_0_FOLLOWING_SEQUENCES_FOLLOWING_SEQUENCES_0.bddl
+  interest_objects_final_states:
+  - - In
+    - bbq_sauce_1
+    - wooden_tray_1_contain_region
+  - - 'On'
+    - butter_2
+    - main_back_left_region
+  - - 'On'
+    - orange_juice_1
+    - main_middle_left_region
+  experiments:
+  - exp_id: single_instruction
+    prompts:
+    - 'Start executing the instruction from the initial scene of the video: move objects
+      by imitating the sequence of actions shown in the video.'
+  - exp_id: sequential
+    prompts:
+    - Pick up the butter box from the middle of the table.
+    - Place the butter box toward the back-left area of the table.
+    - Pick up the BBQ sauce bottle from the front-center area of the table.
+    - Place the BBQ sauce bottle into the wooden tray.
+    - Pick up the orange juice carton from the back-right area of the table.
+    - Place the orange juice carton in the middle-left area of the table.
+    steps_per_prompt: 300
+- task_id: restore_previous_state_data_1
+  bddl: KITCHEN_6_RETURNING_OBJECTS_RETURNING_OBJECTS_0
+  bddl_file: Restore_Previous_State/KITCHEN_6_RETURNING_OBJECTS_RETURNING_OBJECTS_0.bddl
+  interest_objects_final_states:
+  - - In
+    - butter_1
+    - basket_2_contain_region
+  - - In
+    - cream_cheese_1
+    - basket_2_contain_region
+  experiments:
+  - exp_id: single_instruction
+    prompts:
+    - 'Start executing the instruction from the final scene of the video: Put the
+      objects moved in the video back to their original positions at the beginning
+      of the video.'
+  - exp_id: sequential
+    prompts:
+    - From your perspective (the wrist_image), pick up the butter in the red, orange,
+      and yellow box from the front-left area of the table.
+    - From your perspective (the wrist_image), place the butter into the white-fabric-lined
+      woven basket.
+    - From your perspective (the wrist_image), pick up the blue-and-white box of cream
+      cheese from the middle area of the table.
+    - From your perspective (the wrist_image), place the cream cheese into the same
+      woven basket.
+    steps_per_prompt: 300
+- task_id: ordinal_data_33
+  bddl: KITCHEN_11_ORDINAL_ACTION_ORDINAL_ACTION_6
+  bddl_file: Ordinal/KITCHEN_11_ORDINAL_ACTION_ORDINAL_ACTION_6.bddl
+  interest_objects_final_states:
+  - - In
+    - orange_juice_1
+    - wooden_tray_1_contain_region
+  experiments:
+  - exp_id: single_instruction
+    prompts:
+    - 'Start executing the instruction from the final scene of the video: Put the
+      object that the person picks up in the first pick-up action into the wooden
+      tray.'
+  - exp_id: sequential
+    prompts:
+    - From your perspective (the wrist_image), pick up the butter in the red, orange,
+      and yellow box near the middle of the table.
+    - From your perspective (the wrist_image), place the butter into the basket.
+    steps_per_prompt: 300
+- task_id: ordinal_data_22
+  bddl: KITCHEN_11_ORDINAL_ACTION_ORDINAL_ACTION_4
+  bddl_file: Ordinal/KITCHEN_11_ORDINAL_ACTION_ORDINAL_ACTION_4.bddl
+  interest_objects_final_states:
+  - - In
+    - milk_1
+    - wooden_tray_1_contain_region
+  experiments:
+  - exp_id: single_instruction
+    prompts:
+    - 'Start executing the instruction from the final scene of the video: Put the
+      object that the person picks up in the second pick-up action into the wooden
+      tray.'
+  - exp_id: sequential
+    prompts:
+    - Pick up the rectangular box of FARM FRESH BUTTER from the front-center area
+      of the table.
+    - Place the butter into the woven basket lined with white fabric.
+    steps_per_prompt: 300
+- task_id: restore_previous_state_data_40
+  bddl: KITCHEN_6_RETURNING_OBJECTS_RETURNING_OBJECTS_8
+  bddl_file: Restore_Previous_State/KITCHEN_6_RETURNING_OBJECTS_RETURNING_OBJECTS_8.bddl
+  interest_objects_final_states:
+  - - In
+    - new_salad_dressing_1
+    - basket_2_contain_region
+  - - In
+    - tomato_sauce_1
+    - basket_1_contain_region
+  experiments:
+  - exp_id: single_instruction
+    prompts:
+    - 'Start executing the instruction from the final scene of the video: Put the
+      objects moved in the video back to their original positions at the beginning
+      of the video.'
+  - exp_id: sequential
+    prompts:
+    - Pick up the cream cheese box from the front-left area of the table.
+    - Place the cream cheese into the woven basket.
+    steps_per_prompt: 300

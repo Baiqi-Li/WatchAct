@@ -1,0 +1,21 @@
+# Python deps for the WatchAct LIBERO executor (action_execution/).
+#
+# The LIBERO simulator itself is used from ../third_party/LIBERO (added to
+# sys.path automatically). Install LIBERO's own dependencies first:
+#
+#     pip install -r ../third_party/LIBERO/requirements.txt
+#
+# and make sure robosuite + mujoco are working (the provided `libero` conda
+# env already has them). The packages below are what this directory imports
+# directly on top of that.
+
+numpy
+pillow
+imageio[ffmpeg]
+pyyaml
+tqdm
+torch            # only needed to load/generate .pruned_init init states
+
+# Policy client (talks to a WebSocket policy server; see policy_client.py).
+msgpack
+websockets

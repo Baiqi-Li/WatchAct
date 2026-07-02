@@ -3,3 +3,5 @@ outputs/
 __pycache__/
 *.pyc
 .env
+.DS_Store
+data_backup_20260701_before_ignore_cleanup
